@@ -25,6 +25,8 @@ app.set('trust proxy', 1);
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: false, // Disable CSP - React/Vite needs inline scripts
+    crossOriginEmbedderPolicy: false, // Allow loading cross-origin resources (Three.js, etc.)
   })
 );
 
