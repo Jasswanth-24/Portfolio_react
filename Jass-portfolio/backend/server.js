@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 const dotenv = require('dotenv');
+const path = require('path');
 
 // Load environment variables
 dotenv.config();
@@ -98,7 +99,7 @@ app.get('/health', (req, res) => {
 app.use('/api/contact', contactLimiter, contactRoutes);
 
 // Root endpoint
-app.get('/', (req, res) => {
+app.get('/api', (req, res) => {
   res.json({
     success: true,
     message: 'Portfolio Backend API',
@@ -109,6 +110,20 @@ app.get('/', (req, res) => {
     },
   });
 });
+
+// Serve frontend static files in production
+if (process.env.NODE_ENV === 'production') {
+  const frontendBuildPath = path.join(__dirname, '..', 'dist');
+  app.use(express.static(frontendBuildPath));
+
+  // Handle React routing - serve index.html for all non-API routes
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path === '/health') {
+      return next();
+    }
+    res.sendFile(path.join(frontendBuildPath, 'index.html'));
+  });
+}
 
 // Error handling middleware
 app.use(notFound);
