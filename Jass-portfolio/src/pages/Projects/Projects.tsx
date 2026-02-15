@@ -33,7 +33,7 @@ const projects: Project[] = [
     description: 'An immersive portfolio experience with Three.js animations, custom shaders, and stunning visual effects.',
     image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800',
     tags: ['Three.js', 'React'],
-    link: 'https://jasswanth-24.github.io/3d-portfolio',
+    link: 'https://portfolio-jasswanth.vercel.app',
     github: 'https://github.com/Jasswanth-24',
     color: '#00d4ff',
   },
