@@ -1,0 +1,66 @@
+.app {
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.main-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Page Transition Animations */
+.page-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.page-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-exit-active {
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Loading state for lazy components */
+.loading-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  color: var(--primary);
+}
+
+.loading-fallback::after {
+  content: '';
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--primary);
+  border-top-color: transparent;
+  border-radius: 50%;
+  margin-left: 15px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
