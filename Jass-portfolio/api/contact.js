@@ -329,8 +329,8 @@ export default async function handler(req, res) {
       userAgent: req.headers['user-agent'],
     });
 
-    // Send emails (non-blocking — don't let email failure break the response)
-    Promise.allSettled([
+    // Send emails — MUST await in serverless, otherwise function terminates before emails send
+    const emailResults = await Promise.allSettled([
       sendAutoReply({ name, email, subject }),
       sendNotification({
         name,
@@ -341,15 +341,17 @@ export default async function handler(req, res) {
         userAgent: req.headers['user-agent'],
         createdAt: contact.createdAt,
       }),
-    ]).then((results) => {
-      results.forEach((result, index) => {
-        const label = index === 0 ? 'Auto-reply' : 'Notification';
-        if (result.status === 'fulfilled') {
-          console.log(`✅ ${label} email sent successfully`);
-        } else {
-          console.error(`❌ ${label} email failed:`, result.reason?.message);
-        }
-      });
+    ]);
+
+    const emailStatus = emailResults.map((result, index) => {
+      const label = index === 0 ? 'Auto-reply' : 'Notification';
+      if (result.status === 'fulfilled') {
+        console.log(`✅ ${label} email sent successfully`);
+        return { type: label, sent: true };
+      } else {
+        console.error(`❌ ${label} email failed:`, result.reason?.message);
+        return { type: label, sent: false, error: result.reason?.message };
+      }
     });
 
     // Send success response
@@ -363,6 +365,7 @@ export default async function handler(req, res) {
         subject: contact.subject,
         createdAt: contact.createdAt,
       },
+      emails: emailStatus,
     });
   } catch (error) {
     console.error('Contact API error:', error);
