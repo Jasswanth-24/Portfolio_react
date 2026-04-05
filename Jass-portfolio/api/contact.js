@@ -303,12 +303,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Connect to MongoDB
-    await connectDB();
-
     const { name, email, subject, message } = req.body;
 
-    // Validate
+    // Validate first (before any async operations)
     const validationErrors = validateContact({ name, email, subject, message });
     if (validationErrors.length > 0) {
       return res.status(400).json({
@@ -318,16 +315,26 @@ export default async function handler(req, res) {
       });
     }
 
-    // Save to database
-    const Contact = getContactModel();
-    const contact = await Contact.create({
-      name,
-      email,
-      subject,
-      message,
-      ipAddress: req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown',
-      userAgent: req.headers['user-agent'],
-    });
+    const ipAddress = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
+    const userAgent = req.headers['user-agent'];
+    const now = new Date();
+
+    // Try to save to database (non-fatal — emails still send if DB fails)
+    let contact = null;
+    try {
+      await connectDB();
+      const Contact = getContactModel();
+      contact = await Contact.create({
+        name,
+        email,
+        subject,
+        message,
+        ipAddress,
+        userAgent,
+      });
+    } catch (dbError) {
+      console.error('⚠️ MongoDB save failed (emails will still send):', dbError.message);
+    }
 
     // Send emails — MUST await in serverless, otherwise function terminates before emails send
     const emailResults = await Promise.allSettled([
@@ -337,9 +344,9 @@ export default async function handler(req, res) {
         email,
         subject,
         message,
-        ipAddress: req.headers['x-forwarded-for'] || 'unknown',
-        userAgent: req.headers['user-agent'],
-        createdAt: contact.createdAt,
+        ipAddress,
+        userAgent,
+        createdAt: contact?.createdAt || now,
       }),
     ]);
 
@@ -359,11 +366,11 @@ export default async function handler(req, res) {
       success: true,
       message: 'Thank you for your message! I will get back to you soon.',
       data: {
-        id: contact._id,
-        name: contact.name,
-        email: contact.email,
-        subject: contact.subject,
-        createdAt: contact.createdAt,
+        id: contact?._id || null,
+        name,
+        email,
+        subject,
+        createdAt: contact?.createdAt || now,
       },
       emails: emailStatus,
     });
