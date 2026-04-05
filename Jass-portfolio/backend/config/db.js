@@ -27,7 +27,8 @@ const connectDB = async () => {
     return conn;
   } catch (error) {
     console.error(`❌ MongoDB connection failed: ${error.message}`);
-    process.exit(1);
+    console.warn('⚠️  Running without MongoDB. Contact form submissions will not be saved.');
+    return null;
   }
 };
 

@@ -9,18 +9,26 @@ const { sendAutoReply, sendNotification } = require('../utils/emailService');
 const createContact = async (req, res) => {
   try {
     const { name, email, subject, message } = req.body;
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.get('User-Agent');
+    const now = new Date();
 
-    // Create new contact entry
-    const contact = await Contact.create({
-      name,
-      email,
-      subject,
-      message,
-      ipAddress: req.ip || req.connection.remoteAddress,
-      userAgent: req.get('User-Agent'),
-    });
+    // Try to save to DB (non-fatal if DB is unavailable)
+    let contact = null;
+    try {
+      contact = await Contact.create({
+        name,
+        email,
+        subject,
+        message,
+        ipAddress,
+        userAgent,
+      });
+    } catch (dbError) {
+      console.error('⚠️  Failed to save contact to DB:', dbError.message);
+    }
 
-    // Send emails in parallel (non-blocking — don't let email failure break the response)
+    // Send emails in parallel regardless of DB result
     Promise.allSettled([
       sendAutoReply({ name, email, subject }),
       sendNotification({
@@ -28,9 +36,9 @@ const createContact = async (req, res) => {
         email,
         subject,
         message,
-        ipAddress: req.ip || req.connection.remoteAddress,
-        userAgent: req.get('User-Agent'),
-        createdAt: contact.createdAt,
+        ipAddress,
+        userAgent,
+        createdAt: contact?.createdAt || now,
       }),
     ]).then((results) => {
       results.forEach((result, index) => {
@@ -48,11 +56,11 @@ const createContact = async (req, res) => {
       success: true,
       message: 'Thank you for your message! I will get back to you soon.',
       data: {
-        id: contact._id,
-        name: contact.name,
-        email: contact.email,
-        subject: contact.subject,
-        createdAt: contact.createdAt,
+        id: contact?._id || null,
+        name,
+        email,
+        subject,
+        createdAt: contact?.createdAt || now,
       },
     });
   } catch (error) {

@@ -136,10 +136,13 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
-    // Connect to MongoDB
-    await connectDB();
+    // Connect to MongoDB (non-fatal - server starts even if DB is unavailable)
+    const dbConn = await connectDB();
+    if (!dbConn) {
+      console.warn('⚠️  MongoDB unavailable. Server will start without database.');
+    }
 
-    // Verify email transporter
+    // Verify email transporter (non-fatal)
     await verifyTransporter();
 
     app.listen(PORT, () => {
